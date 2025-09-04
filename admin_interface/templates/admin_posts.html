@@ -1,0 +1,1345 @@
+{% extends 'base_admin.html' %}
+
+{% block title %}Gestion des Posts - BiaSaviya Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0"><i class="fas fa-newspaper text-primary me-2"></i>Gestion des Posts</h1>
+                    <p class="text-muted">Modérez et gérez les publications de la communauté</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card bg-gradient-primary text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-newspaper fa-2x mb-2 text-light"></i>
+                    <h4 class="animated-counter" data-target="{{ posts|length }}">0</h4>
+                    <p class="mb-0">Posts Total</p>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <small class="text-light opacity-75">
+                        <i class="fas fa-chart-line me-1"></i>Publications totales
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-gradient-danger text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-heart fa-2x mb-2 text-light"></i>
+                    <h4 class="animated-counter" data-target="{{ total_likes }}">0</h4>
+                    <p class="mb-0">Total Likes</p>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <small class="text-light opacity-75">
+                        <i class="fas fa-thumbs-up me-1"></i>Engagement total
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-gradient-info text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-comments fa-2x mb-2 text-light"></i>
+                    <h4 class="animated-counter" data-target="{{ total_comments }}">0</h4>
+                    <p class="mb-0">Total Commentaires</p>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <small class="text-light opacity-75">
+                        <i class="fas fa-comment-dots me-1"></i>Interactions
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-gradient-success text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-calendar-day fa-2x mb-2 text-light"></i>
+                    <h4 class="animated-counter" data-target="{{ posts_today }}">0</h4>
+                    <p class="mb-0">Posts Aujourd'hui</p>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <small class="text-light opacity-75">
+                        <i class="fas fa-plus-circle me-1"></i>Nouvelles publications
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <form method="GET" class="search-container">
+                {% if current_filter %}
+                    <input type="hidden" name="filter" value="{{ current_filter }}">
+                {% endif %}
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control search-input" 
+                           placeholder="Rechercher par titre, description, auteur..." 
+                           value="{{ search_query }}">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-4">
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" 
+                        data-bs-toggle="dropdown">
+                    <i class="fas fa-filter me-2"></i>
+                    {% if current_filter == 'recent' %}
+                        Filtres: Récents
+                    {% elif current_filter == 'popular' %}
+                        Filtres: Populaires  
+                    {% elif current_filter == 'with_images' %}
+                        Filtres: Avec Images
+                    {% else %}
+                        Filtres: Tous
+                    {% endif %}
+                </button>
+                <ul class="dropdown-menu w-100">
+                    <li>
+                        <a class="dropdown-item {% if current_filter == 'recent' %}active{% endif %}" 
+                           href="?filter=recent{% if search_query %}&search={{ search_query }}{% endif %}">
+                            <i class="fas fa-clock me-2"></i>Récents (7 jours)
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item {% if current_filter == 'popular' %}active{% endif %}" 
+                           href="?filter=popular{% if search_query %}&search={{ search_query }}{% endif %}">
+                            <i class="fas fa-fire me-2"></i>Populaires (1+ likes)
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item {% if current_filter == 'with_images' %}active{% endif %}" 
+                           href="?filter=with_images{% if search_query %}&search={{ search_query }}{% endif %}">
+                            <i class="fas fa-images me-2"></i>Avec Images
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item {% if not current_filter %}active{% endif %}" 
+                           href="{% url 'admin_interface:posts_management' %}{% if search_query %}?search={{ search_query }}{% endif %}">
+                            <i class="fas fa-list me-2"></i>Tous
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    
+    {% if current_filter or search_query %}
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="alert alert-info d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-info-circle me-2"></i>
+                    {% if current_filter and search_query %}
+                        Filtre actif: <strong>
+                        {% if current_filter == 'recent' %}Récents{% elif current_filter == 'popular' %}Populaires{% elif current_filter == 'with_images' %}Avec Images{% endif %}
+                        </strong> | Recherche: <strong>"{{ search_query }}"</strong>
+                    {% elif current_filter %}
+                        Filtre actif: <strong>
+                        {% if current_filter == 'recent' %}Posts des 7 derniers jours{% elif current_filter == 'popular' %}Posts populaires (1+ likes){% elif current_filter == 'with_images' %}Posts avec images{% endif %}
+                        </strong>
+                    {% elif search_query %}
+                        Recherche active: <strong>"{{ search_query }}"</strong>
+                    {% endif %}
+                    - {{ posts|length }} résultat{{ posts|length|pluralize }}
+                </div>
+                <a href="{% url 'admin_interface:posts_management' %}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-times me-1"></i>Effacer filtres
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    
+    <div class="row">
+        {% for post in posts %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 post-card" id="post-{{ post.id }}">
+                {% if post.images %}
+                <div class="card-img-container">
+                    <img src="{{ post.images.0 }}" class="card-img-top" alt="Post image" 
+                         style="height: 200px; object-fit: cover;">
+                    {% if post.images|length > 1 %}
+                    <div class="image-count-badge">
+                        <i class="fas fa-images"></i> {{ post.images|length }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <div class="card-body d-flex flex-column">
+                    <h6 class="card-title">{{ post.title|truncatechars:60 }}</h6>
+                    <p class="card-text flex-grow-1">{{ post.description|truncatechars:100 }}</p>
+                    
+                    <div class="post-meta mb-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="avatar-circle me-2" style="width: 30px; height: 30px; font-size: 12px;">
+                                {{ post.author.first_name|default:post.author.username|first|upper }}
+                            </div>
+                            <small class="text-muted">
+                                {{ post.author.first_name|default:post.author.username }}
+                            </small>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between text-muted">
+                            <small>
+                                <i class="fas fa-calendar me-1"></i>
+                                {{ post.created_at|date:"d/m/Y" }}
+                            </small>
+                            <small>
+                                <i class="fas fa-heart me-1"></i>
+                                {{ post.total_likes|default:0 }}
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="card-actions">
+                        <div class="btn-group w-100" role="group">
+                            <button class="btn btn-sm btn-outline-primary" 
+                                    onclick="viewPost({{ post.id }})"
+                                    title="Voir détails">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" 
+                                    onclick="moderatePost({{ post.id }})"
+                                    title="Modérer">
+                                <i class="fas fa-flag"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" 
+                                    onclick="deletePost({{ post.id }})"
+                                    title="Supprimer">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-newspaper fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">Aucun post trouvé</h5>
+                    {% if search_query %}
+                    <p class="text-muted">Aucun résultat pour "{{ search_query }}"</p>
+                    <a href="{% url 'admin_interface:posts_management' %}" class="btn btn-outline-primary">
+                        Voir tous les posts
+                    </a>
+                    {% else %}
+                    <p class="text-muted">La communauté n'a pas encore publié de contenu</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+
+<div class="modal fade" id="postDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-newspaper me-2"></i>Détails du Post
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="postDetailsContent">
+                
+                <ul class="nav nav-tabs mb-3" id="postDetailsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="general-tab" data-bs-toggle="tab" 
+                                data-bs-target="#general" type="button" role="tab">
+                            <i class="fas fa-info-circle me-1"></i>Informations Générales
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="content-tab" data-bs-toggle="tab" 
+                                data-bs-target="#content" type="button" role="tab">
+                            <i class="fas fa-file-text me-1"></i>Contenu
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="engagement-tab" data-bs-toggle="tab" 
+                                data-bs-target="#engagement" type="button" role="tab">
+                            <i class="fas fa-heart me-1"></i>Engagement
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="comments-tab" data-bs-toggle="tab" 
+                                data-bs-target="#comments" type="button" role="tab">
+                            <i class="fas fa-comments me-1"></i>Commentaires
+                        </button>
+                    </li>
+                </ul>
+
+                
+                <div class="tab-content" id="postDetailsTabsContent">
+                    
+                    <div class="tab-pane fade show active" id="general" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i class="fas fa-user me-2"></i>Auteur
+                                        </h6>
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="avatar-circle me-3" id="authorAvatar">
+                                                
+                                            </div>
+                                            <div>
+                                                <strong id="authorName"></strong>
+                                                <br>
+                                                <small class="text-muted" id="authorEmail"></small>
+                                            </div>
+                                        </div>
+                                        
+                                        <h6 class="card-title">
+                                            <i class="fas fa-calendar me-2"></i>Dates
+                                        </h6>
+                                        <p><strong>Créé :</strong> <span id="createdDate"></span></p>
+                                        <p><strong>Modifié :</strong> <span id="updatedDate"></span></p>
+                                        
+                                        <h6 class="card-title">
+                                            <i class="fas fa-tag me-2"></i>Métadonnées
+                                        </h6>
+                                        <p><strong>ID :</strong> <span id="postId"></span></p>
+                                        <p><strong>Statut :</strong> <span id="postStatus"></span></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i class="fas fa-chart-bar me-2"></i>Statistiques
+                                        </h6>
+                                        <div class="row text-center">
+                                            <div class="col-4">
+                                                <div class="stat-item">
+                                                    <i class="fas fa-heart text-danger fa-2x"></i>
+                                                    <h4 id="likesCount">0</h4>
+                                                    <small>Likes</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="stat-item">
+                                                    <i class="fas fa-comments text-primary fa-2x"></i>
+                                                    <h4 id="commentsCount">0</h4>
+                                                    <small>Commentaires</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="stat-item">
+                                                    <i class="fas fa-eye text-info fa-2x"></i>
+                                                    <h4 id="viewsCount">-</h4>
+                                                    <small>Vues</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="tab-pane fade" id="content" role="tabpanel">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="fas fa-heading me-2"></i>Titre
+                                </h6>
+                                <p id="postTitle" class="h5"></p>
+                                
+                                <h6 class="card-title mt-4">
+                                    <i class="fas fa-align-left me-2"></i>Description
+                                </h6>
+                                <div id="postDescription" class="mb-4"></div>
+                                
+                                <h6 class="card-title">
+                                    <i class="fas fa-images me-2"></i>Images <span id="imageCount" class="badge bg-secondary">0</span>
+                                </h6>
+                                <div id="postImages" class="row">
+                                    
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="tab-pane fade" id="engagement" role="tabpanel">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="fas fa-thumbs-up me-2"></i>Utilisateurs qui ont liké
+                                </h6>
+                                <div id="likedByUsers" class="mb-4">
+                                    
+                                </div>
+                                
+                                <h6 class="card-title">
+                                    <i class="fas fa-chart-line me-2"></i>Analyse d'engagement
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <canvas id="engagementChart" width="400" height="200"></canvas>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="engagement-metrics">
+                                            <div class="metric-item">
+                                                <strong>Taux d'engagement :</strong>
+                                                <span id="engagementRate" class="badge bg-success">-</span>
+                                            </div>
+                                            <div class="metric-item">
+                                                <strong>Ratio Likes/Commentaires :</strong>
+                                                <span id="likeCommentRatio">-</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="tab-pane fade" id="comments" role="tabpanel">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="fas fa-comments me-2"></i>Commentaires récents
+                                </h6>
+                                <div id="postComments">
+                                    
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-warning" onclick="moderateCurrentPost()">
+                        <i class="fas fa-flag me-1"></i>Modérer
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" onclick="deleteCurrentPost()">
+                        <i class="fas fa-trash me-1"></i>Supprimer
+                    </button>
+                </div>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="moderationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-flag me-2"></i>Modération
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Actions de modération disponibles :</p>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-warning" onclick="flagPost()">
+                        <i class="fas fa-flag me-2"></i>Signaler comme inapproprié
+                    </button>
+                    <button class="btn btn-info" onclick="hidePost()">
+                        <i class="fas fa-eye-slash me-2"></i>Masquer temporairement
+                    </button>
+                    <button class="btn btn-danger" onclick="banAuthor()">
+                        <i class="fas fa-ban me-2"></i>Suspendre l'auteur
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.post-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.post-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+.card-img-container {
+    position: relative;
+    overflow: hidden;
+}
+
+.image-count-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+}
+
+.post-meta {
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+}
+
+.avatar-circle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2d5a27 0%, #4a7c59 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.card-actions .btn {
+    border-radius: 6px !important;
+}
+
+.search-container .form-control {
+    border: none;
+    box-shadow: none;
+}
+
+.search-container .form-control:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+
+.modal-xl {
+    max-width: 1140px;
+}
+
+.stat-item {
+    padding: 15px;
+    margin: 5px 0;
+}
+
+.stat-item i {
+    margin-bottom: 10px;
+}
+
+.engagement-metrics {
+    padding: 20px;
+}
+
+.metric-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.metric-item:last-child {
+    border-bottom: none;
+}
+
+.tab-content {
+    min-height: 400px;
+}
+
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+#postDetailsModal .card {
+    border: 1px solid #e9ecef;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+#postDetailsModal .card-title {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.comment-item {
+    transition: background-color 0.2s;
+}
+
+.comment-item:hover {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.loading-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+
+function viewPost(postId) {
+    console.log('viewPost called with ID:', postId);
+    
+    
+    window.currentPostId = postId;
+    
+    
+    showPostDetailsModal();
+    showLoadingInModal();
+    
+    
+    const url = `{% url 'admin_interface:post_details' 0 %}`.replace('0', postId);
+    console.log('Fetching from URL:', url);
+    
+    fetch(url)
+        .then(response => {
+            console.log('Response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.success) {
+                populatePostDetails(data.post);
+            } else {
+                showToast('error', 'Erreur lors du chargement des détails du post');
+                console.error('API error:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            showToast('error', 'Erreur de connexion lors du chargement des détails');
+            
+            loadPostDetailsFromDOM(postId);
+        });
+}
+
+
+function showPostDetailsModal() {
+    console.log('showPostDetailsModal called');
+    
+    
+    restoreModalStructure();
+    
+    const modal = new bootstrap.Modal(document.getElementById('postDetailsModal'));
+    modal.show();
+}
+
+
+function restoreModalStructure() {
+    console.log('restoreModalStructure called');
+    
+    const generalTab = document.getElementById('general');
+    const contentTab = document.getElementById('content');
+    const engagementTab = document.getElementById('engagement');
+    const commentsTab = document.getElementById('comments');
+    
+    
+    if (generalTab) {
+        console.log('Restoring general tab structure...');
+        generalTab.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-user me-2"></i>Auteur
+                            </h6>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="avatar-circle me-3" id="authorAvatar"></div>
+                                <div>
+                                    <strong id="authorName"></strong>
+                                    <br>
+                                    <small class="text-muted" id="authorEmail"></small>
+                                </div>
+                            </div>
+                            
+                            <h6 class="card-title">
+                                <i class="fas fa-calendar me-2"></i>Dates
+                            </h6>
+                            <p><strong>Créé :</strong> <span id="createdDate"></span></p>
+                            <p><strong>Modifié :</strong> <span id="updatedDate"></span></p>
+                            
+                            <h6 class="card-title">
+                                <i class="fas fa-tag me-2"></i>Métadonnées
+                            </h6>
+                            <p><strong>ID :</strong> <span id="postId"></span></p>
+                            <p><strong>Statut :</strong> <span id="postStatus"></span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-chart-bar me-2"></i>Statistiques
+                            </h6>
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="stat-item">
+                                        <i class="fas fa-heart text-danger fa-2x"></i>
+                                        <h4 id="likesCount">0</h4>
+                                        <small>Likes</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="stat-item">
+                                        <i class="fas fa-comments text-primary fa-2x"></i>
+                                        <h4 id="commentsCount">0</h4>
+                                        <small>Commentaires</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="stat-item">
+                                        <i class="fas fa-eye text-info fa-2x"></i>
+                                        <h4 id="viewsCount">-</h4>
+                                        <small>Vues</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    
+    if (contentTab) {
+        console.log('Restoring content tab structure...');
+        contentTab.innerHTML = `
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="fas fa-heading me-2"></i>Titre
+                    </h6>
+                    <p id="postTitle" class="h5"></p>
+                    
+                    <h6 class="card-title mt-4">
+                        <i class="fas fa-align-left me-2"></i>Description
+                    </h6>
+                    <div id="postDescription" class="mb-4"></div>
+                    
+                    <h6 class="card-title">
+                        <i class="fas fa-images me-2"></i>Images <span id="imageCount" class="badge bg-secondary">0</span>
+                    </h6>
+                    <div id="postImages" class="row"></div>
+                </div>
+            </div>
+        `;
+    }
+
+    
+    if (engagementTab) {
+        console.log('Restoring engagement tab structure...');
+        engagementTab.innerHTML = `
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="fas fa-thumbs-up me-2"></i>Utilisateurs qui ont liké
+                    </h6>
+                    <div id="likedByUsers" class="mb-4"></div>
+                    
+                    <h6 class="card-title">
+                        <i class="fas fa-chart-line me-2"></i>Analyse d'engagement
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="engagement-metrics">
+                                <div class="metric-item">
+                                    <strong>Taux d'engagement :</strong>
+                                    <span id="engagementRate" class="badge bg-success">-</span>
+                                </div>
+                                <div class="metric-item">
+                                    <strong>Ratio Likes/Commentaires :</strong>
+                                    <span id="likeCommentRatio">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    
+    if (commentsTab) {
+        console.log('Restoring comments tab structure...');
+        commentsTab.innerHTML = `
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="fas fa-comments me-2"></i>Commentaires récents
+                    </h6>
+                    <div id="postComments"></div>
+                </div>
+            </div>
+        `;
+    }
+    
+    console.log('Modal structure restoration completed');
+}
+
+
+function showLoadingInModal() {
+    console.log('showLoadingInModal called');
+    
+    
+    const firstTab = document.querySelector('#postDetailsTabs .nav-link');
+    const firstTabPane = document.querySelector('#postDetailsTabsContent .tab-pane');
+    
+    if (firstTab && firstTabPane) {
+        
+        document.querySelectorAll('#postDetailsTabs .nav-link').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('#postDetailsTabsContent .tab-pane').forEach(pane => {
+            pane.classList.remove('show', 'active');
+        });
+        
+        firstTab.classList.add('active');
+        firstTabPane.classList.add('show', 'active');
+    }
+    
+    
+    const generalTab = document.getElementById('general');
+    if (generalTab) {
+        
+        const loadingOverlay = document.createElement('div');
+        loadingOverlay.id = 'loadingOverlay';
+        loadingOverlay.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        `;
+        loadingOverlay.innerHTML = `
+            <div class="d-flex align-items-center">
+                <div class="spinner-border text-primary me-3" role="status">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
+                <span>Chargement des détails du post...</span>
+            </div>
+        `;
+        
+        
+        const existingOverlay = document.getElementById('loadingOverlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
+        }
+        
+        
+        generalTab.style.position = 'relative';
+        generalTab.appendChild(loadingOverlay);
+    } else {
+        console.error('General tab not found');
+    }
+}
+
+
+function removeLoadingOverlay() {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) {
+        loadingOverlay.remove();
+    }
+}
+
+
+function populatePostDetails(post) {
+    console.log('populatePostDetails called with:', post);
+    
+    
+    removeLoadingOverlay();
+    
+    try {
+        
+        const authorAvatar = document.getElementById('authorAvatar');
+        const authorName = document.getElementById('authorName');
+        const authorEmail = document.getElementById('authorEmail');
+        const createdDate = document.getElementById('createdDate');
+        const updatedDate = document.getElementById('updatedDate');
+        const postId = document.getElementById('postId');
+        const postStatus = document.getElementById('postStatus');
+        
+        if (authorAvatar) {
+            authorAvatar.textContent = post.author.name.charAt(0).toUpperCase();
+            console.log('Author avatar populated');
+        }
+        if (authorName) {
+            authorName.textContent = post.author.name;
+            console.log('Author name populated');
+        }
+        if (authorEmail) {
+            authorEmail.textContent = post.author.email || 'Email non disponible';
+            console.log('Author email populated');
+        }
+        if (createdDate) {
+            createdDate.textContent = formatDate(post.created_at);
+            console.log('Created date populated');
+        }
+        if (updatedDate) {
+            updatedDate.textContent = formatDate(post.updated_at);
+            console.log('Updated date populated');
+        }
+        if (postId) {
+            postId.textContent = post.id;
+            console.log('Post ID populated');
+        }
+        if (postStatus) {
+            postStatus.innerHTML = `<span class="badge bg-success">Actif</span>`;
+            console.log('Post status populated');
+        }
+        
+        
+        const likesCount = document.getElementById('likesCount');
+        const commentsCount = document.getElementById('commentsCount');
+        const viewsCount = document.getElementById('viewsCount');
+        
+        if (likesCount) {
+            likesCount.textContent = post.likes_count || 0;
+            console.log('Likes count populated');
+        }
+        if (commentsCount) {
+            commentsCount.textContent = post.comments_count || 0;
+            console.log('Comments count populated');
+        }
+        if (viewsCount) {
+            viewsCount.textContent = post.views_count || '-';
+            console.log('Views count populated');
+        }
+        
+        
+        const postTitle = document.getElementById('postTitle');
+        const postDescription = document.getElementById('postDescription');
+        
+        if (postTitle) {
+            postTitle.textContent = post.title;
+            console.log('Post title populated');
+        }
+        if (postDescription) postDescription.innerHTML = `<p>${post.description}</p>`;
+        
+        
+        const imageCount = post.images ? post.images.length : 0;
+        const imageCountElement = document.getElementById('imageCount');
+        if (imageCountElement) imageCountElement.textContent = imageCount;
+        
+        const imagesContainer = document.getElementById('postImages');
+        if (imagesContainer) {
+            if (imageCount > 0) {
+                imagesContainer.innerHTML = post.images.map(image => `
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <img src="${image}" class="card-img-top" alt="Post image" style="height: 150px; object-fit: cover;">
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                imagesContainer.innerHTML = '<p class="text-muted">Aucune image</p>';
+            }
+        }
+        
+        
+        populateEngagementData(post);
+        
+        
+        populateCommentsData(post);
+        
+        console.log('Modal populated successfully');
+        
+    } catch (error) {
+        console.error('Error populating modal:', error);
+        showToast('error', 'Erreur lors de l\'affichage des détails');
+    }
+}
+
+
+function loadPostDetailsFromDOM(postId) {
+    const postCard = document.getElementById(`post-${postId}`);
+    if (!postCard) {
+        showToast('error', 'Post non trouvé');
+        return;
+    }
+    
+    
+    const title = postCard.querySelector('.card-title').textContent;
+    const description = postCard.querySelector('.card-text').textContent;
+    const authorName = postCard.querySelector('.post-meta small').textContent.trim();
+    const date = postCard.querySelector('.fa-calendar').parentNode.textContent.trim();
+    const likes = postCard.querySelector('.fa-heart').parentNode.textContent.trim();
+    
+    
+    document.getElementById('postTitle').textContent = title;
+    document.getElementById('postDescription').innerHTML = `<p>${description}</p>`;
+    document.getElementById('authorName').textContent = authorName;
+    document.getElementById('authorAvatar').textContent = authorName.charAt(0).toUpperCase();
+    document.getElementById('createdDate').textContent = date;
+    document.getElementById('updatedDate').textContent = date;
+    document.getElementById('postId').textContent = postId;
+    document.getElementById('likesCount').textContent = likes;
+    
+    
+    document.getElementById('imageCount').textContent = '0';
+    document.getElementById('postImages').innerHTML = '<p class="text-muted">Données non disponibles</p>';
+    document.getElementById('likedByUsers').innerHTML = '<p class="text-muted">Données non disponibles en mode hors ligne</p>';
+    document.getElementById('postComments').innerHTML = '<p class="text-muted">Données non disponibles en mode hors ligne</p>';
+}
+
+
+function populateEngagementData(post) {
+    
+    const likedByContainer = document.getElementById('likedByUsers');
+    if (post.liked_by && post.liked_by.length > 0) {
+        likedByContainer.innerHTML = post.liked_by.map(user => `
+            <div class="d-flex align-items-center mb-2">
+                <div class="avatar-circle me-2" style="width: 30px; height: 30px; font-size: 12px;">
+                    ${user.name.charAt(0).toUpperCase()}
+                </div>
+                <span>${user.name}</span>
+            </div>
+        `).join('');
+    } else {
+        likedByContainer.innerHTML = '<p class="text-muted">Aucun like pour le moment</p>';
+    }
+    
+    
+    const likesCount = post.likes_count || 0;
+    const commentsCount = post.comments_count || 0;
+    const totalEngagement = likesCount + commentsCount;
+    
+    if (totalEngagement > 0) {
+        const engagementRate = ((totalEngagement / 100) * 100).toFixed(1); 
+        document.getElementById('engagementRate').textContent = `${engagementRate}%`;
+        
+        const ratio = commentsCount > 0 ? (likesCount / commentsCount).toFixed(1) : 'N/A';
+        document.getElementById('likeCommentRatio').textContent = ratio;
+    } else {
+        document.getElementById('engagementRate').textContent = '0%';
+        document.getElementById('likeCommentRatio').textContent = 'N/A';
+    }
+}
+
+
+function populateCommentsData(post) {
+    const commentsContainer = document.getElementById('postComments');
+    
+    if (post.comments && post.comments.length > 0) {
+        commentsContainer.innerHTML = post.comments.map(comment => `
+            <div class="border-bottom mb-3 pb-3">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="avatar-circle me-2" style="width: 30px; height: 30px; font-size: 12px;">
+                        ${comment.author.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                        <strong>${comment.author.name}</strong>
+                        <small class="text-muted ms-2">${formatDate(comment.created_at)}</small>
+                    </div>
+                </div>
+                <p class="mb-0">${comment.content}</p>
+            </div>
+        `).join('');
+    } else {
+        commentsContainer.innerHTML = '<p class="text-muted">Aucun commentaire pour le moment</p>';
+    }
+}
+
+
+function formatDate(dateString) {
+    if (!dateString) return 'Date non disponible';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+
+function moderateCurrentPost() {
+    if (window.currentPostId) {
+        moderatePost(window.currentPostId);
+    }
+}
+
+
+function deleteCurrentPost() {
+    if (window.currentPostId) {
+        deletePost(window.currentPostId);
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('postDetailsModal'));
+        if (modal) {
+            modal.hide();
+        }
+    }
+}
+
+
+function moderatePost(postId) {
+    const modal = new bootstrap.Modal(document.getElementById('moderationModal'));
+    modal.show();
+}
+
+
+function deletePost(postId) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce post ? Cette action est irréversible.')) {
+        fetch(`{% url 'admin_interface:delete_post' 0 %}`.replace('0', postId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('success', data.message);
+                document.getElementById(`post-${postId}`).remove();
+            } else {
+                showToast('error', data.message);
+            }
+        })
+        .catch(error => {
+            showToast('error', 'Erreur lors de la suppression du post');
+        });
+    }
+}
+
+
+function flagPost() {
+    showToast('warning', 'Post signalé comme inapproprié');
+    bootstrap.Modal.getInstance(document.getElementById('moderationModal')).hide();
+}
+
+function hidePost() {
+    showToast('info', 'Post masqué temporairement');
+    bootstrap.Modal.getInstance(document.getElementById('moderationModal')).hide();
+}
+
+function banAuthor() {
+    if (confirm('Êtes-vous sûr de vouloir suspendre cet utilisateur ?')) {
+        showToast('warning', 'Utilisateur suspendu');
+        bootstrap.Modal.getInstance(document.getElementById('moderationModal')).hide();
+    }
+}
+
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+
+function showToast(type, message) {
+    const toastContainer = document.getElementById('toastContainer') || createToastContainer();
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : type === 'warning' ? 'warning' : 'info'} border-0`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+    toastContainer.appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    
+    
+    toast.addEventListener('hidden.bs.toast', () => {
+        toast.remove();
+    });
+}
+
+
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+    document.body.appendChild(container);
+    return container;
+}
+
+
+window.pageSpecificRefresh = function() {
+    return new Promise((resolve) => {
+        
+        refreshPostData();
+        setTimeout(resolve, 500);
+    });
+};
+
+
+function refreshPostData() {
+    
+    const postCards = document.querySelectorAll('.post-card');
+    postCards.forEach((card, index) => {
+        setTimeout(() => {
+            card.style.opacity = '0.7';
+            setTimeout(() => {
+                card.style.opacity = '1';
+            }, 300);
+        }, index * 100);
+    });
+    
+    
+    animateCounters();
+}
+
+
+function animateCounters() {
+    document.querySelectorAll('.animated-counter').forEach(counter => {
+        const target = parseInt(counter.dataset.target);
+        const increment = target / 60; 
+        let current = 0;
+        
+        const updateCounter = () => {
+            if (current < target) {
+                current += increment;
+                counter.textContent = Math.ceil(current);
+                requestAnimationFrame(updateCounter);
+            } else {
+                counter.textContent = target;
+            }
+        };
+        
+        counter.textContent = '0';
+        updateCounter();
+    });
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        animateCounters();
+    }, 500);
+});
+</script>
+
+<style>
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.bg-gradient-danger {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%) !important;
+}
+
+.bg-gradient-info {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+}
+
+.bg-gradient-success {
+    background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%) !important;
+}
+
+
+.stat-card {
+    transition: all 0.3s ease;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    overflow: hidden;
+    position: relative;
+}
+
+.stat-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.stat-card:hover::before {
+    opacity: 1;
+}
+
+
+.animated-counter {
+    font-size: 2.5rem;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover .animated-counter {
+    transform: scale(1.1);
+}
+
+
+.stat-card i {
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover i {
+    transform: scale(1.2) rotate(10deg);
+}
+</style>
+
+{% endblock %}

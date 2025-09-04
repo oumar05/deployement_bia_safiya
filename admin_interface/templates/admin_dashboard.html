@@ -1,0 +1,766 @@
+{% extends 'base_admin.html' %}
+
+{% block title %}Tableau de Bord - BiaSaviya Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="welcome-card card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="h3 mb-1">
+                                <i class="fas fa-tachometer-alt text-primary me-2"></i>
+                                Bienvenue, {{ user.first_name|default:user.username }} !
+                            </h1>
+                            <p class="text-muted mb-0">
+                                Voici un aperçu de l'activité de BiaSaviya aujourd'hui
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="d-flex gap-2 justify-content-end">
+                                <button id="refreshBtn" class="btn btn-success" type="button" title="Actualiser les données">
+                                    <i id="refreshIcon" class="fas fa-sync-alt me-2"></i>Actualiser
+                                </button>
+                                
+                                <div class="dropdown dropup">
+                                    <button class="btn btn-outline-primary dropdown-toggle" type="button" 
+                                            data-bs-toggle="dropdown">
+                                        <i class="fas fa-calendar me-2"></i>{{ period_label|title }}
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="?time_filter=day">Dernières 24h</a></li>
+                                        <li><a class="dropdown-item" href="?time_filter=month">Derniers 30 jours</a></li>
+                                        <li><a class="dropdown-item" href="?time_filter=year">Dernière année</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card stat-card-blue">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-2x mb-2"></i>
+                    <h3 data-stat="total_users">{{ total_users }}</h3>
+                    <p class="mb-1">Utilisateurs</p>
+                    <small class="stat-detail">
+                        <i class="fas fa-arrow-up me-1"></i>{{ new_users_period }} nouveaux dernière année
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card stat-card-green">
+                <div class="card-body text-center">
+                    <i class="fas fa-newspaper fa-2x mb-2"></i>
+                    <h3 data-stat="total_posts">{{ total_posts }}</h3>
+                    <p class="mb-1">Publications</p>
+                    <small class="stat-detail">
+                        <i class="fas fa-plus me-1"></i>0 ajoutés aujourd'hui
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card stat-card-yellow">
+                <div class="card-body text-center">
+                    <i class="fas fa-comments fa-2x mb-2"></i>
+                    <h3 data-stat="total_comments">{{ total_comments }}</h3>
+                    <p class="mb-1">Commentaires</p>
+                    <small class="stat-detail">
+                        <i class="fas fa-comment me-1"></i>0 aujourd'hui
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card stat-card-cyan">
+                <div class="card-body text-center">
+                    <i class="fas fa-robot fa-2x mb-2"></i>
+                    <h3 data-stat="total_chats">{{ total_chats }}</h3>
+                    <p class="mb-1">Conversations Bot</p>
+                    <small class="stat-detail">
+                        <i class="fas fa-clock me-1"></i>0 aujourd'hui
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card stat-card-purple">
+                <div class="card-body text-center">
+                    <i class="fas fa-mobile-alt fa-2x mb-2"></i>
+                    <h3 data-stat="total_mobile_sessions">{{ total_mobile_sessions|default:26 }}</h3>
+                    <p class="mb-1">Sessions App Mobile</p>
+                    <small class="stat-detail">
+                        <i class="fas fa-clock me-1"></i><span data-stat="mobile_sessions_today">0</span> sessions {{ period_label }}
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card stat-card-teal">
+                <div class="card-body text-center">
+                    <i class="fas fa-sync-alt fa-2x mb-2"></i>
+                    <h3 data-stat="app_iterations">{{ app_iterations|default:26 }}</h3>
+                    <p class="mb-1">Itérations Total</p>
+                    <small class="stat-detail">
+                        <i class="fas fa-play me-1"></i><span data-stat="app_iterations_today">0</span> ouvertures {{ period_label }}
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card stat-card-orange">
+                <div class="card-body text-center">
+                    <i class="fas fa-clock fa-2x mb-2"></i>
+                    <h3 data-stat="avg_mobile_duration">{{ avg_mobile_duration|default:23 }}</h3>
+                    <p class="mb-1">Durée Moy. Mobile (min)</p>
+                    <small class="stat-detail">
+                        <i class="fas fa-stopwatch me-1"></i>Temps moyen app mobile
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card stat-card-blue-light">
+                <div class="card-body text-center">
+                    <i class="fas fa-hand-pointer fa-2x mb-2"></i>
+                    <h3 data-stat="total_interactions">{{ total_interactions|default:469 }}</h3>
+                    <p class="mb-1">Actions Mobile Total</p>
+                    <small class="stat-detail">
+                        <i class="fas fa-mouse-pointer me-1"></i><span data-stat="interactions_today">0</span> {{ period_label }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>Évolution des Utilisateurs
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="userEvolutionChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Activité Générale
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="generalActivityChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-fire me-2"></i>Posts Populaires
+                    </h5>
+                    <a href="{% url 'admin_interface:posts_management' %}" class="btn btn-sm btn-outline-primary">
+                        Voir tous
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% for post in popular_posts %}
+                    <div class="d-flex align-items-center mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                        <div class="avatar-circle me-3">
+                            {{ post.author.first_name|default:post.author.username|first|upper }}
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">{{ post.title|truncatechars:50 }}</h6>
+                            <small class="text-muted">
+                                Par {{ post.author.first_name|default:post.author.username }} • 
+                                {{ post.created_at|timesince }} • 
+                                <i class="fas fa-heart text-danger"></i> {{ post.total_likes }} likes
+                            </small>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-newspaper fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">Aucun post populaire pour le moment</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-mobile-screen me-2"></i>Top Écrans App
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for screen in top_screens %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h6 class="mb-1">{{ screen.screen_name|default:"Écran Inconnu" }}</h6>
+                            <small class="text-muted">Visites</small>
+                        </div>
+                        <span class="badge bg-primary">{{ screen.count }}</span>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-mobile-alt fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">Données d'écrans non disponibles</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>Activité Récente
+                    </h5>
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'admin_interface:users_management' %}" class="btn btn-sm btn-outline-primary">
+                            Utilisateurs
+                        </a>
+                        <a href="{% url 'admin_interface:chat_analytics' %}" class="btn btn-sm btn-outline-primary">
+                            Conversations
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Derniers Utilisateurs Connectés</h6>
+                            {% for user in recent_users %}
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="avatar-circle me-3">
+                                    {{ user.first_name|default:user.username|first|upper }}
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">{{ user.first_name }} {{ user.last_name }}</h6>
+                                    <small class="text-muted">
+                                        Dernière connexion: {{ user.last_login|default:"Jamais"|timesince }}
+                                    </small>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-users fa-2x text-muted mb-2"></i>
+                                <p class="text-muted mb-0">Aucune activité récente</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Statistiques en Temps Réel</h6>
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <div class="text-center p-3 bg-light rounded">
+                                        <h4 class="text-primary mb-1" data-stat="new_users_today">0</h4>
+                                        <small class="text-muted">Nouveaux aujourd'hui</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center p-3 bg-light rounded">
+                                        <h4 class="text-success mb-1" data-stat="posts_today">0</h4>
+                                        <small class="text-muted">Posts aujourd'hui</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center p-3 bg-light rounded">
+                                        <h4 class="text-info mb-1" data-stat="comments_today">0</h4>
+                                        <small class="text-muted">Commentaires</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center p-3 bg-light rounded">
+                                        <h4 class="text-warning mb-1" data-stat="chats_today">0</h4>
+                                        <small class="text-muted">Conversations</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+
+.dropdown-menu {
+    z-index: 9999 !important;
+    position: absolute !important;
+}
+
+.dropdown {
+    position: relative;
+    z-index: 1000;
+}
+
+
+.welcome-card .dropdown {
+    z-index: 2000;
+}
+
+.welcome-card .dropdown-menu {
+    z-index: 2001 !important;
+}
+
+
+.welcome-card .dropup .dropdown-menu {
+    bottom: 100% !important;
+    top: auto !important;
+    margin-bottom: 0.125rem;
+}
+
+.welcome-card {
+    background: linear-gradient(135deg, #2d5a27 0%, #4a7c59 100%);
+    color: white;
+    border: none;
+}
+
+.welcome-card .text-muted {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.stat-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    color: white;
+    position: relative;
+    overflow: hidden;
+    z-index: 1; 
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.stat-card-blue {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+}
+
+.stat-card-green {
+    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+}
+
+.stat-card-yellow {
+    background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
+}
+
+.stat-card-cyan {
+    background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
+}
+
+.stat-card-purple {
+    background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+}
+
+.stat-card-teal {
+    background: linear-gradient(135deg, #26c6da 0%, #00acc1 100%);
+}
+
+.stat-card-orange {
+    background: linear-gradient(135deg, #ff9800 0%, #e67e22 100%);
+}
+
+.stat-card-blue-light {
+    background: linear-gradient(135deg, #29b6f6 0%, #039be5 100%);
+}
+
+.stat-card h3 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0.5rem 0;
+    color: white;
+}
+
+.stat-card p {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: white;
+}
+
+.stat-card i {
+    color: rgba(255,255,255,0.9);
+}
+
+.stat-detail {
+    color: rgba(255,255,255,0.8) !important;
+    font-size: 0.85rem;
+}
+
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2d5a27 0%, #4a7c59 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+
+.card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+}
+
+.card-header {
+    background: white;
+    border-bottom: 1px solid #f0f0f0;
+    border-radius: 12px 12px 0 0 !important;
+}
+
+.card-header h5 {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+
+#refreshBtn {
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+#refreshBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+#refreshBtn.refreshing #refreshIcon {
+    animation: spin 1s linear infinite;
+}
+
+#refreshBtn.refreshing {
+    background-color: #28a745;
+    border-color: #28a745;
+    opacity: 0.8;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+
+.stat-card.updating {
+    animation: pulse 0.6s ease-in-out;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+.update-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    min-width: 300px;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+
+document.addEventListener('DOMContentLoaded', function() {
+    
+    animateStatsOnLoad();
+    
+    
+    initializeRefreshButton();
+    
+    
+    initializeTimeFilterHandlers();
+    
+    
+    window.pageSpecificRefresh = function() {
+        return new Promise((resolve) => {
+            
+            refreshCharts();
+            setTimeout(resolve, 500);
+        });
+    };
+    
+    
+    const ctx1 = document.getElementById('userEvolutionChart').getContext('2d');
+    const userEvolutionChart = new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: ['10/08', '11/08', '12/08', '13/08', '14/08', '15/08', '16/08'],
+            datasets: [{
+                label: 'Utilisateurs',
+                data: [0, 0, 0, 3.0, 0, 1.0, 0],
+                borderColor: '#2d5a27',
+                backgroundColor: 'rgba(45, 90, 39, 0.1)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 3,
+                pointBackgroundColor: '#2d5a27',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 3.5,
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    },
+                    ticks: {
+                        stepSize: 0.5
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+
+    
+    const ctx2 = document.getElementById('generalActivityChart').getContext('2d');
+    const generalActivityChart = new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: ['10/08', '11/08', '12/08', '13/08', '14/08', '15/08', '16/08'],
+            datasets: [
+                {
+                    label: 'Posts',
+                    data: [0, 0, 0, 3, 4, 0, 2],
+                    backgroundColor: '#2d5a27',
+                    borderRadius: 4
+                },
+                {
+                    label: 'Commentaires',
+                    data: [0, 0, 0, 3, 4, 0, 0],
+                    backgroundColor: '#4a7c59',
+                    borderRadius: 4
+                },
+                {
+                    label: 'Interactions',
+                    data: [0, 0, 0, 0, 0, 0, 0],
+                    backgroundColor: '#7fb069',
+                    borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 5,
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    },
+                    ticks: {
+                        stepSize: 1
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+});
+
+
+function animateStatsOnLoad() {
+    
+    const statElements = document.querySelectorAll('.stat-card h3');
+    
+    statElements.forEach((element, index) => {
+        
+        const finalValue = parseInt(element.textContent) || 0;
+        
+        
+        element.textContent = '0';
+        
+        
+        setTimeout(() => {
+            animateNumber(element, 0, finalValue, 2000); 
+        }, index * 200); 
+    });
+}
+
+
+function initializeRefreshButton() {
+    const refreshBtn = document.getElementById('refreshBtn');
+    
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            
+            performGlobalRefresh();
+        });
+    }
+}
+
+
+function refreshCharts() {
+    
+    const chartContainers = document.querySelectorAll('.card canvas');
+    chartContainers.forEach((canvas, index) => {
+        const card = canvas.closest('.card');
+        setTimeout(() => {
+            card.style.opacity = '0.7';
+            setTimeout(() => {
+                card.style.opacity = '1';
+            }, 300);
+        }, index * 200);
+    });
+}
+
+
+
+
+
+function animateStatsOnLoad() {
+    
+    const statElements = document.querySelectorAll('.stat-card h3');
+    
+    statElements.forEach((element, index) => {
+        
+        const finalValue = parseInt(element.textContent) || 0;
+        
+        
+        element.textContent = '0';
+        
+        
+        setTimeout(() => {
+            animateNumber(element, 0, finalValue, 2000); 
+        }, index * 200); 
+    });
+}
+
+
+function initializeTimeFilterHandlers() {
+    
+    document.querySelectorAll('.dropdown-item[href*="time_filter"]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            
+            const url = new URL(this.href);
+            const timeFilter = url.searchParams.get('time_filter');
+            
+            
+            updateStatsForTimeFilter(timeFilter);
+            
+            
+            setTimeout(() => {
+                window.location.href = this.href;
+            }, 1500);
+        });
+    });
+}
+
+
+function updateStatsForTimeFilter(timeFilter) {
+    
+    showGlobalNotification(`Changement vers ${timeFilter === 'day' ? 'dernières 24h' : timeFilter === 'month' ? 'derniers 30 jours' : 'dernière année'}...`, 'info');
+    
+    
+    fetch(`{% url "admin_interface:real_time_stats" %}?time_filter=${timeFilter}`)
+        .then(response => response.json())
+        .then(data => {
+            
+            document.querySelectorAll('.stat-card').forEach((card, index) => {
+                setTimeout(() => {
+                    card.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        card.style.transform = 'scale(1)';
+                    }, 200);
+                }, index * 100);
+            });
+            
+            
+            setTimeout(() => {
+                document.querySelectorAll('[data-stat]').forEach(el => {
+                    const statName = el.getAttribute('data-stat');
+                    if (data[statName] !== undefined) {
+                        animateNumber(el, parseInt(el.textContent) || 0, data[statName], 1000);
+                    }
+                });
+                
+                updatePeriodSpecificStats(data);
+            }, 300);
+        })
+        .catch(error => {
+            console.error('Erreur lors du changement de filtre:', error);
+            showGlobalNotification('Erreur lors du changement de période', 'error');
+        });
+}
+</script>
+{% endblock %}

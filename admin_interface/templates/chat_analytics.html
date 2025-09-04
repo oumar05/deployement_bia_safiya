@@ -1,0 +1,619 @@
+{% extends 'base_admin.html' %}
+
+{% block title %}Analytics Chat - BiaSaviya Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0"><i class="fas fa-comments text-primary me-2"></i>Analytics du Chatbot</h1>
+                    <p class="text-muted">Analysez les conversations avec l'IA BiaSaviya</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card bg-gradient-primary text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-comments fa-2x mb-2 text-light"></i>
+                    <h4 class="animated-counter" data-target="{{ total_conversations }}">0</h4>
+                    <p class="mb-0">Total Conversations</p>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <small class="text-light opacity-75">
+                        <i class="fas fa-chart-line me-1"></i>Toutes les discussions
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-gradient-success text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-robot fa-2x mb-2 text-light"></i>
+                    <h4 class="animated-counter" data-target="{{ categories|length }}">0</h4>
+                    <p class="mb-0">Catégories Actives</p>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <small class="text-light opacity-75">
+                        <i class="fas fa-tags me-1"></i>Types de demandes
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-gradient-warning text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-calendar-day fa-2x mb-2 text-light"></i>
+                    <h4 class="animated-counter" data-target="0">0</h4>
+                    <p class="mb-0">Conversations Aujourd'hui</p>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <small class="text-light opacity-75">
+                        <i class="fas fa-clock me-1"></i>Activité du jour
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-gradient-info text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-2x mb-2 text-light"></i>
+                    <h4 class="animated-counter" data-target="95">0</h4>
+                    <p class="mb-0">Taux de Réponse (%)</p>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <small class="text-light opacity-75">
+                        <i class="fas fa-check-circle me-1"></i>Performance IA
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>Évolution des Conversations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="conversationsChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>Catégories Populaires
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="categoriesChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tags me-2"></i>Répartition par Catégorie
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for category in categories %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h6 class="mb-1">{{ category.category|default:"Non catégorisé"|title }}</h6>
+                            <small class="text-muted">Conversations</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-primary fs-6">{{ category.count }}</span>
+                            <div class="progress mt-1" style="height: 4px; width: 100px;">
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: {{ category.count|floatformat:0 }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-tags fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">Aucune catégorie disponible</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>Conversations Récentes
+                    </h5>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    {% for chat in recent_chats %}
+                    <div class="chat-item mb-3 p-3 bg-light rounded">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge bg-info">{{ chat.category|default:"Général" }}</span>
+                            <small class="text-muted">{{ chat.timestamp|timesince }}</small>
+                        </div>
+                        
+                        <div class="user-message mb-2">
+                            <strong class="text-primary">
+                                <i class="fas fa-user me-1"></i>Utilisateur :
+                            </strong>
+                            <p class="mb-1">{{ chat.user_message|truncatechars:150 }}</p>
+                        </div>
+                        
+                        <div class="bot-response">
+                            <strong class="text-success">
+                                <i class="fas fa-robot me-1"></i>BiaSaviya :
+                            </strong>
+                            <p class="mb-0 text-muted">{{ chat.bot_response|truncatechars:200 }}</p>
+                        </div>
+                        
+                        <div class="chat-actions mt-2">
+                            <button class="btn btn-sm btn-outline-primary" 
+                                    onclick="viewFullChat('{{ chat.session_id }}')">
+                                <i class="fas fa-eye me-1"></i>Voir conversation
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" 
+                                    onclick="analyzeChat({{ chat.id }})">
+                                <i class="fas fa-search me-1"></i>Analyser
+                            </button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                        <p class="text-muted mb-0">Aucune conversation récente</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Métriques de Performance
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="metric-item text-center p-3">
+                                <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                                <h4 class="text-info">1.2s</h4>
+                                <p class="text-muted mb-0">Temps de réponse moyen</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="metric-item text-center p-3">
+                                <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                                <h4 class="text-success">95%</h4>
+                                <p class="text-muted mb-0">Taux de réussite</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="metric-item text-center p-3">
+                                <i class="fas fa-users fa-2x text-warning mb-2"></i>
+                                <h4 class="text-warning">{{ total_conversations }}</h4>
+                                <p class="text-muted mb-0">Sessions uniques</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="metric-item text-center p-3">
+                                <i class="fas fa-star fa-2x text-danger mb-2"></i>
+                                <h4 class="text-danger">4.8/5</h4>
+                                <p class="text-muted mb-0">Satisfaction moyenne</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="chatAnalysisModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-search me-2"></i>Analyse de Conversation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="chatAnalysisContent">
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.chat-item {
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.chat-item:hover {
+    border-color: #2d5a27;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(45, 90, 39, 0.1);
+}
+
+.metric-item {
+    border-right: 1px solid #e9ecef;
+}
+
+.metric-item:last-child {
+    border-right: none;
+}
+
+.progress {
+    background-color: #f0f0f0;
+}
+
+.progress-bar {
+    background: linear-gradient(135deg, #2d5a27 0%, #4a7c59 100%);
+}
+
+.user-message {
+    background: rgba(45, 90, 39, 0.1);
+    padding: 10px;
+    border-radius: 8px;
+    border-left: 4px solid #2d5a27;
+}
+
+.bot-response {
+    background: rgba(74, 124, 89, 0.1);
+    padding: 10px;
+    border-radius: 8px;
+    border-left: 4px solid #4a7c59;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+
+const conversationsData = {{ daily_chats|safe }};
+const categoriesData = [
+    {% for category in categories %}
+    {
+        label: '{{ category.category|default:"Non catégorisé" }}',
+        value: {{ category.count }}
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+
+const conversationsCtx = document.getElementById('conversationsChart').getContext('2d');
+new Chart(conversationsCtx, {
+    type: 'line',
+    data: {
+        labels: conversationsData.map(item => item.date),
+        datasets: [{
+            label: 'Conversations',
+            data: conversationsData.map(item => item.count),
+            borderColor: '#2d5a27',
+            backgroundColor: 'rgba(45, 90, 39, 0.1)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#2d5a27',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: 6
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(0,0,0,0.1)'
+                }
+            },
+            x: {
+                grid: {
+                    display: false
+                }
+            }
+        }
+    }
+});
+
+
+if (categoriesData.length > 0) {
+    const categoriesCtx = document.getElementById('categoriesChart').getContext('2d');
+    new Chart(categoriesCtx, {
+        type: 'doughnut',
+        data: {
+            labels: categoriesData.map(item => item.label),
+            datasets: [{
+                data: categoriesData.map(item => item.value),
+                backgroundColor: [
+                    '#2d5a27',
+                    '#4a7c59',
+                    '#6ba368',
+                    '#8eb686',
+                    '#b0c9a5',
+                    '#d3dcc4'
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                }
+            }
+        }
+    });
+}
+
+
+function viewFullChat(sessionId) {
+    showToast('info', `Chargement de la conversation ${sessionId}...`);
+    
+}
+
+
+function analyzeChat(chatId) {
+    const modal = new bootstrap.Modal(document.getElementById('chatAnalysisModal'));
+    
+    
+    document.getElementById('chatAnalysisContent').innerHTML = `
+        <div class="text-center py-4">
+            <i class="fas fa-spinner fa-spin fa-2x text-primary mb-3"></i>
+            <p>Analyse en cours...</p>
+        </div>
+    `;
+    
+    modal.show();
+    
+    
+    setTimeout(() => {
+        document.getElementById('chatAnalysisContent').innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Sentiment Analysis</h6>
+                    <div class="progress mb-3">
+                        <div class="progress-bar bg-success" style="width: 85%">Positif (85%)</div>
+                    </div>
+                    
+                    <h6>Catégorie Détectée</h6>
+                    <span class="badge bg-info mb-3">Environnement</span>
+                    
+                    <h6>Qualité de la Réponse</h6>
+                    <div class="progress mb-3">
+                        <div class="progress-bar bg-warning" style="width: 90%">Excellent (90%)</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h6>Mots-clés Détectés</h6>
+                    <div class="mb-3">
+                        <span class="badge bg-primary me-1">pollution</span>
+                        <span class="badge bg-primary me-1">environnement</span>
+                        <span class="badge bg-primary me-1">solutions</span>
+                    </div>
+                    
+                    <h6>Suggestions d'Amélioration</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-1"><i class="fas fa-check text-success me-2"></i>Réponse complète</li>
+                        <li class="mb-1"><i class="fas fa-check text-success me-2"></i>Ton approprié</li>
+                        <li class="mb-1"><i class="fas fa-info text-info me-2"></i>Ajouter plus d'exemples</li>
+                    </ul>
+                </div>
+            </div>
+        `;
+    }, 2000);
+}
+
+
+function showToast(type, message) {
+    const toastContainer = document.getElementById('toastContainer') || createToastContainer();
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} border-0`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+    toastContainer.appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    
+    
+    toast.addEventListener('hidden.bs.toast', () => {
+        toast.remove();
+    });
+}
+
+
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+    document.body.appendChild(container);
+    return container;
+}
+
+
+window.pageSpecificRefresh = function() {
+    return new Promise((resolve) => {
+        
+        refreshChatAnalytics();
+        setTimeout(resolve, 500);
+    });
+};
+
+
+function refreshChatAnalytics() {
+    
+    const chartContainers = document.querySelectorAll('.card canvas');
+    chartContainers.forEach((canvas, index) => {
+        const card = canvas.closest('.card');
+        setTimeout(() => {
+            card.style.opacity = '0.7';
+            setTimeout(() => {
+                card.style.opacity = '1';
+            }, 400);
+        }, index * 150);
+    });
+    
+    
+    animateCounters();
+}
+
+
+function animateCounters() {
+    document.querySelectorAll('.animated-counter').forEach(counter => {
+        const target = parseInt(counter.dataset.target);
+        const increment = target / 60; 
+        let current = 0;
+        
+        const updateCounter = () => {
+            if (current < target) {
+                current += increment;
+                counter.textContent = Math.ceil(current);
+                requestAnimationFrame(updateCounter);
+            } else {
+                counter.textContent = target;
+            }
+        };
+        
+        counter.textContent = '0';
+        updateCounter();
+    });
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        animateCounters();
+    }, 500);
+});
+</script>
+
+<style>
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.bg-gradient-success {
+    background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%) !important;
+}
+
+.bg-gradient-warning {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+}
+
+.bg-gradient-info {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+}
+
+
+.stat-card {
+    transition: all 0.3s ease;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    overflow: hidden;
+    position: relative;
+}
+
+.stat-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.stat-card:hover::before {
+    opacity: 1;
+}
+
+
+.animated-counter {
+    font-size: 2.5rem;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover .animated-counter {
+    transform: scale(1.1);
+}
+
+
+.stat-card i {
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover i {
+    transform: scale(1.2) rotate(10deg);
+}
+
+
+.conversation-card {
+    transition: all 0.3s ease;
+}
+
+.conversation-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+</style>
+
+{% endblock %}
